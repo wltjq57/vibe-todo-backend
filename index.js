@@ -30,46 +30,17 @@ app.use((req, res, next) => {
 // MongoDB 연결
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todo-db';
 
-// MongoDB 연결 상태 추적
-let mongoDBConnected = false;
-
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    mongoDBConnected = true;
     console.log('MongoDB 연결성공');
   })
   .catch((error) => {
-    mongoDBConnected = false;
     console.error('MongoDB 연결 실패:', error);
     process.exit(1);
   });
 
-// 라우터 import
-const todoRoutes = require('./routers/todoRoutes');
-
-// 기본 라우트 (MongoDB 연결 상태 확인 전에 위치)
-app.get('/', (req, res) => {
-  const isConnected = mongoose.connection.readyState === 1;
-  
-  if (isConnected) {
-    res.json({ 
-      message: 'MongoDB에서 새로운 클라우드 데이터베이스 연결성공'
-    });
-  } else {
-    res.json({ 
-      message: 'TODO Backend API가 정상적으로 작동 중입니다.',
-      database: 'MongoDB 연결 대기 중 또는 실패'
-    });
-  }
-});
-
-// MongoDB 연결 상태 확인 미들웨어 (API 라우트에만 적용)
+// MongoDB 연결 상태 확인 미들웨어
 app.use((req, res, next) => {
-  // 루트 경로는 제외
-  if (req.path === '/') {
-    return next();
-  }
-  
   if (mongoose.connection.readyState !== 1) {
     console.error('MongoDB 연결 상태:', mongoose.connection.readyState);
     return res.status(503).json({
@@ -79,6 +50,14 @@ app.use((req, res, next) => {
     });
   }
   next();
+});
+
+// 라우터 import
+const todoRoutes = require('./routers/todoRoutes');
+
+// 기본 라우트
+app.get('/', (req, res) => {
+  res.json({ message: 'TODO Backend API가 정상적으로 작동 중입니다.' });
 });
 
 // 할일 라우터
